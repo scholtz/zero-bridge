@@ -1,0 +1,165 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: freewil-test
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: freewil-ss
+  namespace: freewil-test
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: freewil-app-ss
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: freewil-app-ss
+    spec:
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 1
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                  - key: "app"
+                    operator: In
+                    values:
+                    - freewil-app-ss
+              topologyKey: "kubernetes.io/hostname"
+      containers:
+        - name: freewil-pod-test
+          image: scholtz2/bitcoincore:21.0-regtest-stable
+#          command:
+#            - /bin/bash
+          command:
+            - /bin/bash
+            - '-c'
+            - '--'
+          args:
+            - /home/tester/bitcoin-testnet-box/run.sh;
+          resources:
+            requests:
+              memory: "10000Mi"
+              cpu: "6000m"
+            limits:
+              memory: "12000Mi"
+              cpu: "8000m"
+          ports:
+            - containerPort: 19001
+              protocol: TCP
+            - containerPort: 19011
+              protocol: TCP
+#          startupProbe:
+#            tcpSocket:
+#              port: 18332
+#            initialDelaySeconds: 60
+#            periodSeconds: 10   
+#            failureThreshold: 100
+#          readinessProbe:
+#            tcpSocket:
+#              port: 18332
+#            initialDelaySeconds: 60
+#            timeoutSeconds: 10   
+#            failureThreshold: 100
+#          livenessProbe:
+#            tcpSocket:
+#              port: 18332
+#            initialDelaySeconds: 60
+#            timeoutSeconds: 10        
+#            failureThreshold: 6
+          resources: {}
+          volumeMounts:
+            - name: freewil-vol-test1
+              mountPath: /home/tester/bitcoin-testnet-box/1/regtest/
+            - name: freewil-vol-test2
+              mountPath: /home/tester/bitcoin-testnet-box/2/regtest/
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          imagePullPolicy: IfNotPresent
+      restartPolicy: Always
+      dnsPolicy: ClusterFirst
+      securityContext:
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      schedulerName: default-scheduler
+  volumeClaimTemplates:
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: freewil-vol-test1
+        namespace: freewil-test
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: freewil-test1
+        volumeMode: Filesystem
+    - kind: PersistentVolumeClaim
+      apiVersion: v1
+      metadata:
+        name: freewil-vol-test2
+        namespace: freewil-test
+      spec:
+        accessModes:
+          - ReadWriteMany
+        resources:
+          requests:
+            storage: 10Gi
+        storageClassName: freewil-test2
+        volumeMode: Filesystem
+  serviceName: btc-set-service-ss
+  podManagementPolicy: OrderedReady
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      partition: 0
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-pv-freewil-test1
+spec:
+  storageClassName: freewil-test1
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/run/desktop/mnt/host/d/algo/btc/data-freewil-1"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - docker-desktop
+---
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: data-pv-freewil-test2
+spec:
+  storageClassName: freewil-test2
+  capacity:
+    storage: 10Gi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    path: "/run/desktop/mnt/host/d/algo/btc/data-freewil-2"
+  nodeAffinity:
+    required:
+      nodeSelectorTerms:
+      - matchExpressions:
+        - key: kubernetes.io/hostname
+          operator: In
+          values:
+          - docker-desktop
