@@ -111,7 +111,7 @@ spec:
   accessModes:
     - ReadWriteOnce
   hostPath:
-    path: "/run/desktop/mnt/host/d/algo/btc/data-test"
+    path: "/run/desktop/mnt/host/c/btc/data-test"
   nodeAffinity:
     required:
       nodeSelectorTerms:
